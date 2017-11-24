@@ -1,0 +1,14 @@
+{
+  "name": "jscharttrial",
+  "version": "1.0.0",
+  "description": "jscharttrial",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Alp Bilgon",
+  "license": "ISC",
+  "dependencies": {
+    "js2flowchart": "^1.0.4"
+  }
+}
