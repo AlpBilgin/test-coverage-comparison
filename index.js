@@ -164,6 +164,8 @@ class builder {
     }
 
     // clone the builder BEFORE the recursive call to copy the INTERIM state
+    // TODO What if I simply stored a copy of the path and then reassigned it back to the
+    // same object between executions, instead of creating a clone?
     let clone = new builder(this)
 
 
