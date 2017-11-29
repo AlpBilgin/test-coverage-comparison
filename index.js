@@ -2,7 +2,7 @@ var js2flowchart = require("js2flowchart");
 
 var code = `
 function code(a, b, c) {
-    if(b<=a){
+    if(b<a){
         if(c<b){
         }
     }
@@ -12,7 +12,7 @@ function code(a, b, c) {
 }
 `;
 
-// in an implementation with looping this will be used to keep track of the tester
+// This is used to keep track of the nodes visited by tester.
 var visitedNodesGUID = [];
 // Walker uses this value to assign GUIDs to nodes
 var GUID = 0;
@@ -127,7 +127,6 @@ class builder {
     this.edges = [];
     // if a parent is defined do a shallow copy of the edges
     if (parentBuilder) {
-      console.log("called");
       this.edges = parentBuilder.edges.slice(0);
     }
   }
@@ -186,7 +185,8 @@ class builder {
 
 
 function tester(node, childnumber) {
-  visitedNodesGUID.push(node.GUID);
+  // When a node is not visited its value in array will be undefined.
+  visitedNodesGUID[node.GUID] = true;
   // making first selected child modify the parent if statement lets us centralise the functionality.
   if (!node.parent.selected) {
     node.parent["selected"] = childnumber;
@@ -200,13 +200,14 @@ function tester(node, childnumber) {
             tester(node.body[index], index);
           }
         }
-      } else {
-        for (index in node.body) {
-          if (node.body[index].key === "alternate") {
-            tester(node.body[index], index);
-          }
-        }
       }
+      /*else {
+             for (index in node.body) {
+               if (node.body[index].key === "alternate") {
+                 tester(node.body[index], index);
+               }
+             }
+           }*/
       break;
       /*
         case "Loop":
@@ -243,15 +244,13 @@ fs.writeFileSync("test.svg", svg);
 // console.log(tree.body[0].body[0]);
 
 walker(tree);
-//tester(tree, null);
 
-
-//console.log(visitedNodesGUID);
 //console.log(GUID);
 
 new builder().walk(tree.body[0].body[0], tree.body[0].GUID, true);
 
-console.log("global", edge.globalEdges);
+// console.log("global", edge.globalEdges);
+
 // get decimal value of decision coverage to check uniqueness of paths
 // for (let i in traveledPaths) {
 //   let holder = 0;
@@ -260,7 +259,12 @@ console.log("global", edge.globalEdges);
 //   }
 //   traveledPaths[i].sum = holder;
 // }
-console.log(traveledPaths)
+
+//console.log(traveledPaths)
+
+
+tester(tree, null);
+console.log(visitedNodesGUID[3]);
 
 // console.log(tree.body[0].body[0]);
 
