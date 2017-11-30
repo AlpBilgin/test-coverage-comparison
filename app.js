@@ -1,23 +1,36 @@
-globalListe = [0];
-class recurser {
-  constructor(parent) {
-    this.liste = [];
-    if (parent) {
-      this.liste = parent.liste.slice(0);
+var testCodeCoverage = require("./index.js");
+
+
+var code = `
+function code(a, b, c) {
+    if(b<a){
+        if(c<b){
+        }
     }
-  }
-  walker() {
-    if (globalListe.length > 10) {
-      return;
+    if(b<c){
     }
-    globalListe.push(globalListe[globalListe.length - 1] + 1);
-    this.liste.push(globalListe[globalListe.length - 2] + 1);
-    (new recurser(this)).walker();
-    console.log(this.liste);
-  }
-  whoIs() {
-    console.log(this);
-  }
+    return;
 }
-(new recurser()).walker();
-console.log(globalListe)
+`;
+
+var testCases = [{
+        a: 1,
+        b: 1,
+        c: 1
+    },
+    {
+        a: 1,
+        b: 0,
+        c: 1
+    }
+]
+
+
+
+var lol = new testCodeCoverage.testCoverageComparison(code, testCases);
+
+//console.log(lol.GUID);
+console.log(lol.visitedNodesGUID);
+console.log(lol.statementCoverage());
+console.log(lol.threadPaths);
+console.log(lol.branchCoverage);

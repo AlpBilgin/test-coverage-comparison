@@ -1,43 +1,184 @@
 var js2flowchart = require("js2flowchart");
+var fs = require("fs");
 
-var code = `
-function code(a, b, c) {
-    if(b<a){
-        if(c<b){
+class testCoverageComparison {
+  constructor(code, testCases) {
+    // Code is the function to be analysed using the tool
+    this.code = code;
+    // Testcases is an array of objects that contain key,value pairs of input parameters
+    this.testCases = testCases;
+    // Parse the string into a initial tree
+    this.tree = js2flowchart.convertCodeToFlowTree(code);
+    // Generate a reference SVG from the parsed tree
+    this.svg = js2flowchart.convertFlowTreeToSvg(this.tree);
+    fs.writeFileSync("test.svg", this.svg);
+    // Walker uses this value to assign GUIDs to nodes
+    this.GUID = 0;
+    // This is used to keep track of the nodes visited by tester.
+    this.visitedNodesGUID = [];
+    // list of all paths taken
+    this.threadPaths = [];
+    // buffer to construct paths in loop
+    this.tempPath = [];
+    // 'global' list of touched branches
+    this.branchCoverage = [];
+    // Assign GUIDs to nodes
+    this.walker(this.tree);
+    // Set a new set of pointers between nodes and plot the paths between
+    // All possible paths are stored in edge.globalEdges
+    new builder().walk(this.tree.body[0].body[0], this.tree.body[0].GUID, true);
+    // Declare it beforehand
+    this.currentTestCase = {};
+    // iterate through test cases
+    for (let i in testCases) {
+      this.tempPath = [];
+      // assign a test case to the internal state
+      this.currentTestCase = testCases[i];
+      // run code with the values we just assigned
+      this.tester(this.tree, null);
+      // store the individual path taken by this test
+      this.threadPaths.push(this.tempPath);
+      console.log(">----<")
+    }
+  }
+
+  /**
+   * Walk the nodes recursively. Assigns a GUID to every node
+   * @param {*} node 
+   */
+  walker(node) {
+    if (!node.GUID) {
+      node.GUID = this.GUID;
+      this.GUID++;
+    }
+    if (node.body && node.body !== []) {
+      for (let index in node.body) {
+        this.walker(node.body[index], index);
+      }
+    }
+  }
+
+  tester(node, childnumber) {
+    // When a node is not visited its value in array will be undefined.
+    this.visitedNodesGUID[node.GUID] = true;
+    // making first selected child modify the parent if statement lets us centralise the functionality.
+    if (!node.parent.selected) {
+      node.parent["selected"] = childnumber;
+    }
+    // logic here could be changed to accomodate t/f pathing of decisions
+    switch (node.type) {
+      case "Conditional":
+        if (this.executor(node.name)) {
+          for (let index in node.body) {
+            if (node.body[index].key === "consequent") {
+              this.addEdgeTotempPath(new edge(node.GUID, node.body[index].GUID, true));
+              this.addEdgeTobranchCoverage(new edge(node.GUID, node.body[index].GUID, true));
+              this.tester(node.body[index], index);
+            }
+          }
+        }
+        /*else {
+               for (index in node.body) {
+                 if (node.body[index].key === "alternate") {
+                   tester(node.body[index], index);
+                 }
+               }
+             }*/
+        break;
+        /*
+          case "Loop":
+              while (eval(node.name)) {
+                  for (index in node.body) {
+                      walker(node.body[index]);
+                  }
+              }
+              break;
+              */
+      case "UpdateExpression":
+      case "AssignmentExpression":
+        this.executor(node.name);
+        break;
+      default:
+        if (node.body && node.body !== []) {
+          for (let index in node.body) {
+            this.addEdgeTotempPath(new edge(node.GUID, node.body[index].GUID));
+            this.addEdgeTobranchCoverage(new edge(node.GUID, node.body[index].GUID, true));
+            this.tester(node.body[index], index);
+          }
         }
     }
-    if(b<c){
-    }
     return;
-}
-`;
-
-// This is used to keep track of the nodes visited by tester.
-var visitedNodesGUID = [];
-// Walker uses this value to assign GUIDs to nodes
-var GUID = 0;
-// When a builder reaches a RETURN statement, it dumps its internal buffer here
-var traveledPaths = [];
-
-// basic test case
-var a = 1;
-var b = 1;
-var c = 1;
-
-/**
- * Walk the nodes recursively. Assign a GUID to every node
- * @param {*} node 
- */
-function walker(node) {
-  if (!node.GUID) {
-    node.GUID = GUID;
-    GUID++;
   }
-  if (node.body && node.body !== []) {
-    for (index in node.body) {
-      walker(node.body[index], index);
+
+  // takes strings in form of (a > b) and evaluates them
+  executor(operation) {
+    console.log(operation);
+    // remove parens if found
+    if (operation.charAt(0) === "(") {
+      operation = operation.slice(1, -1);
+    }
+    // change to an array of two operands and a comparison operator
+    let tokens = operation.split(" ");
+    let lhs = tokens[0];
+    let op = tokens[1];
+    let rhs = tokens[2];
+    switch (op) {
+      case ">":
+        return this.currentTestCase[lhs] > this.currentTestCase[rhs];
+      case "<":
+        return this.currentTestCase[lhs] < this.currentTestCase[rhs];
+      case ">=":
+        return this.currentTestCase[lhs] >= this.currentTestCase[rhs];
+      case "<=":
+        return this.currentTestCase[lhs] <= this.currentTestCase[rhs];
+      case "===":
+        return this.currentTestCase[lhs] === this.currentTestCase[rhs];
+      case "!==":
+        return this.currentTestCase[lhs] !== this.currentTestCase[rhs];
+      case "==":
+        return this.currentTestCase[lhs] == this.currentTestCase[rhs];
+      case "!=":
+        return this.currentTestCase[lhs] != this.currentTestCase[rhs];
+      case "=":
+        return this.currentTestCase[lhs] = this.currentTestCase[rhs];
     }
   }
+
+  addEdgeTotempPath(edge) {
+    for (let key in this.tempPath) {
+      // silently return if found
+      if (this.tempPath[key].equals(edge)) {
+        return;
+      }
+    }
+    this.tempPath.push(edge);
+  }
+
+  addEdgeTobranchCoverage(edge) {
+    for (let key in this.branchCoverage) {
+      // silently return if found
+      if (this.branchCoverage[key].equals(edge)) {
+        return;
+      }
+    }
+    this.branchCoverage.push(edge);
+  }
+
+  // The visitedNodesGUID is filled up by the tester. Visited nodes are represented by true, rest are undefined.
+  statementCoverage() {
+    if (this.visitedNodesGUID.length === 0) {
+      return 0;
+    }
+    // filter not undefined elements into a anon array and use its length for percentage coverage
+    return (
+      this.visitedNodesGUID.filter( // filter according to callback
+        (value) => {
+          return value !== undefined // filter defined
+        }
+      ).length) / this.visitedNodesGUID.length; // get length and divide by total length
+  }
+
+
 }
 
 // This function expects input code to be terminated with a RETURN statement. Otherwise it may cause a call stack violation.
@@ -123,7 +264,7 @@ edge.globalEdges = [];
 
 class builder {
   constructor(parentBuilder) {
-    // initialise an array, will be filled with edge objects
+    // initialise an array, will be filled with edge objects that builder creates as it leaves a node
     this.edges = [];
     // if a parent is defined do a shallow copy of the edges
     if (parentBuilder) {
@@ -154,20 +295,17 @@ class builder {
     } else if (node.type === "ReturnStatement") {
       // if the node is terminal
       node.trueChild = null;
-      traveledPaths.push(this.edges);
+      builder.traveledPaths.push(this.edges);
       return;
     } else {
       // console.log("here");
       //for all other cases look for a successor
       node.trueChild = findSuccessor(node);
     }
-
     // clone the builder BEFORE the recursive call to copy the INTERIM state
     // TODO What if I simply stored a copy of the path and then reassigned it back to the
     // same object between executions, instead of creating a clone?
     let clone = new builder(this)
-
-
     // follow trueChild is set go on
     if (node.trueChild) {
       this.walk(node.trueChild, node.GUID, true);
@@ -177,101 +315,16 @@ class builder {
       //console.log(this);
       clone.walk(node.falseChild, node.GUID, false);
     }
-
     // console.log("yerel edge", this.edges);
   }
 }
-
-
-
-function tester(node, childnumber) {
-  // When a node is not visited its value in array will be undefined.
-  visitedNodesGUID[node.GUID] = true;
-  // making first selected child modify the parent if statement lets us centralise the functionality.
-  if (!node.parent.selected) {
-    node.parent["selected"] = childnumber;
-  }
-
-  switch (node.type) {
-    case "Conditional":
-      if (eval(node.name)) {
-        for (index in node.body) {
-          if (node.body[index].key === "consequent") {
-            tester(node.body[index], index);
-          }
-        }
-      }
-      /*else {
-             for (index in node.body) {
-               if (node.body[index].key === "alternate") {
-                 tester(node.body[index], index);
-               }
-             }
-           }*/
-      break;
-      /*
-        case "Loop":
-            while (eval(node.name)) {
-                for (index in node.body) {
-                    walker(node.body[index]);
-                }
-            }
-            break;
-            */
-    case "UpdateExpression":
-    case "AssignmentExpression":
-      eval(node.name);
-      break;
-    default:
-      if (node.body && node.body !== []) {
-        for (index in node.body) {
-          tester(node.body[index], index);
-        }
-      }
-  }
-  return;
-}
-
-var tree = js2flowchart.convertCodeToFlowTree(code);
-var svg = js2flowchart.convertFlowTreeToSvg(tree);
-
-var fs = require("fs");
-fs.writeFileSync("test.svg", svg);
-
-// TESTING DUMP
-
-// TODO do code coverage checks on the parsed tree
-// console.log(tree.body[0].body[0]);
-
-walker(tree);
-
-//console.log(GUID);
-
-new builder().walk(tree.body[0].body[0], tree.body[0].GUID, true);
-
-// console.log("global", edge.globalEdges);
-
-// get decimal value of decision coverage to check uniqueness of paths
-// for (let i in traveledPaths) {
-//   let holder = 0;
-//   for (let j in traveledPaths[i]) {
-//     holder += traveledPaths[i][j].logic ? Math.pow(2, j) : 0;
-//   }
-//   traveledPaths[i].sum = holder;
-// }
-
-//console.log(traveledPaths)
-
-
-tester(tree, null);
-console.log(visitedNodesGUID[3]);
-
-// console.log(tree.body[0].body[0]);
-
-// eval("console.log(visitedNodes)")
+// When a builder reaches a RETURN statement, it dumps its internal buffer here
+builder.traveledPaths = [];
 
 
 
 
-
-// TODO do a more suitable visualisation
+exports.findSuccessor = findSuccessor;
+exports.builder = builder;
+exports.edge = edge;
+exports.testCoverageComparison = testCoverageComparison;
