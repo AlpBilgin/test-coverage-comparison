@@ -1,5 +1,4 @@
 var js2flowchart = require("js2flowchart");
-var fs = require("fs");
 
 class testCoverageComparison {
   constructor(code, testCases) {
@@ -11,7 +10,6 @@ class testCoverageComparison {
     this.tree = js2flowchart.convertCodeToFlowTree(code);
     // Generate a reference SVG from the parsed tree
     this.svg = js2flowchart.convertFlowTreeToSvg(this.tree);
-    fs.writeFileSync("test.svg", this.svg);
     // Walker uses this value to assign GUIDs to nodes
     this.GUID = 0;
     // This is used to keep track of the nodes visited by tester.
@@ -320,9 +318,6 @@ class builder {
 }
 // When a builder reaches a RETURN statement, it dumps its internal buffer here
 builder.traveledPaths = [];
-
-
-
 
 exports.findSuccessor = findSuccessor;
 exports.builder = builder;
