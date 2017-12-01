@@ -4,7 +4,7 @@
   "description": "Tool for displaying code coverage according to different measures. Accepts a JS function and any combination of input variable values.",
   "main": "index.js",
   "scripts": {
-    "test": "node app.js"
+    "test": "node test.js"
   },
   "repository": {
     "type": "git",

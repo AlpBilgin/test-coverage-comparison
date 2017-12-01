@@ -26,8 +26,8 @@ var testCases = [{
 
 var tester = new testCodeCoverage.testCoverageComparison(code, testCases);
 
-console.log(tester.GUID);
-console.log(tester.visitedNodesGUID);
-console.log(tester.statementCoverage());
+//console.log(tester.GUID);
+//console.log(tester.visitedNodesGUID);
+//console.log(tester.statementCoverage());
 console.log(tester.threadPaths);
-console.log(tester.branchCoverage);
+console.log(testCodeCoverage.edge.globalEdges);
