@@ -1,6 +1,5 @@
 var testCodeCoverage = require("./index.js");
 
-
 var code = `
 function code(a, b, c) {
     if(b<a){
@@ -25,12 +24,10 @@ var testCases = [{
     }
 ]
 
+var tester = new testCodeCoverage.testCoverageComparison(code, testCases);
 
-
-var lol = new testCodeCoverage.testCoverageComparison(code, testCases);
-
-//console.log(lol.GUID);
-console.log(lol.visitedNodesGUID);
-console.log(lol.statementCoverage());
-console.log(lol.threadPaths);
-console.log(lol.branchCoverage);
+console.log(tester.GUID);
+console.log(tester.visitedNodesGUID);
+console.log(tester.statementCoverage());
+console.log(tester.threadPaths);
+console.log(tester.branchCoverage);
