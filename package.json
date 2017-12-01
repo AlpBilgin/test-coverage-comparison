@@ -1,5 +1,5 @@
 {
-  "name": "code-coverage-comparison",
+  "name": "test-coverage-comparison",
   "version": "0.0.1",
   "description": "Tool for displaying code coverage according to different measures. Accepts a JS function and any combination of input variable values.",
   "main": "index.js",
