@@ -1,12 +1,16 @@
 {
-  "name": "jscharttrial",
-  "version": "1.0.0",
-  "description": "jscharttrial",
+  "name": "code-coverage-comparison",
+  "version": "0.0.1",
+  "description": "Tool for displaying code coverage according to different measures. Accepts a JS function and any combination of input variable values.",
   "main": "index.js",
   "scripts": {
-    "start": "node app.js"
+    "test": "node app.js"
   },
-  "author": "Alp Bilgon",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AlpBilgin/test-coverage-comparison"
+  },
+  "author": "Alp Bilgin",
   "license": "ISC",
   "dependencies": {
     "js2flowchart": "^1.0.4"
