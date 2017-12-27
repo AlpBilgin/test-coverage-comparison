@@ -25,7 +25,7 @@ class testCoverageComparison {
     // Set a new set of pointers between nodes and plot the paths between
     // All possible paths are stored in edge.globalEdges
     new builder().walk(this.tree, true);
-    // Declare it beforehand
+    // Forward declaration
     this.currentTestCase = {};
     // iterate through test cases
     for (let i in testCases) {
@@ -271,23 +271,18 @@ class builder {
   }
   // process nodes one by one
   walk(node, logic) {
-    // console.log("node guid", node.parent)
-    // ignore incoming path if there is only one parent pointer and it is circular
-    if (node === node.parent[0]) {
-      // console.log("caught")
-    } else { // Else create edge
-      // console.log(node.GUID);
-      // console.log(node.parent);
+    // ignore incoming path if node is root
+    if (node.type !== "Program") {
       let incomingEdge = new edge(node.parent.GUID, node.GUID, logic)
-      // console.log("incomingEdge", incomingEdge)
-      // try to record globally
+      // record globally
       edge.insertToGlobal(incomingEdge);
-      //  record locally
+      // record locally
       this.edges.push(incomingEdge);
     }
+
     // Turn into switch case statement
     if (node.type === "Conditional") {
-      // set falseChild pointer to a successor
+      // set falseChild pointer to the lateral successor by default
       node.falseChild = findLateralSuccessor(node);
       // if the conditional has children
       if (node.body.length !== 0) {

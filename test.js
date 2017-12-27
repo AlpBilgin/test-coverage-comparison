@@ -27,13 +27,13 @@ var testCases = [{
 
 var tester = new testCodeCoverage.testCoverageComparison(code, testCases);
 
-//console.log(tester.GUID);
-//console.log(tester.visitedNodesGUID);
-//console.log(tester.statementCoverage());
-console.log(tester.threadPaths);
-console.log(testCodeCoverage.edge.globalEdges);
-console.log(tester.branchCoverage);
-
+// console.log(tester.GUID);
+// console.log(tester.visitedNodesGUID);
+// console.log(tester.statementCoverage());
+// console.log(tester.threadPaths);
+// console.log(testCodeCoverage.edge.globalEdges);
+// console.log(tester.branchCoverage);
+/*
 for (let key in tester) {
     console.log(key);
-}
+}*/
