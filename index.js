@@ -24,7 +24,7 @@ class testCoverageComparison {
     this.walker(this.tree);
     // Set a new set of pointers between nodes and plot the paths between
     // All possible paths are stored in edge.globalEdges
-    new builder().walk(this.tree.body[0].body[0], this.tree.body[0].GUID, true);
+    new builder().walk(this.tree, true);
     // Declare it beforehand
     this.currentTestCase = {};
     // iterate through test cases
@@ -179,8 +179,8 @@ class testCoverageComparison {
 
 }
 
-// This function expects input code to be terminated with a RETURN statement. Otherwise it may cause a call stack violation.
-function findSuccessor(node) {
+// This function expects input code to be terminated with a RETURN statement. Otherwise it may cause a infinite recursive callback and a call stack violation.
+function findLateralSuccessor(node) {
   // look for sibling
   let index = node.parent.body.indexOf(node);
   // if item is in array (actually redundant) and is not the last item(a next sibling exists), return next sibling.
@@ -188,7 +188,7 @@ function findSuccessor(node) {
     return node.parent.body[index + 1];
   }
   // if there is no sibling recursively call for parent to find an uncle
-  return findSuccessor(node.parent)
+  return findLateralSuccessor(node.parent)
 }
 
 // used to encapsulate the connection between node pairs.
@@ -270,18 +270,25 @@ class builder {
     }
   }
   // process nodes one by one
-  walk(node, incomingGUID, logic) {
-    //console.log("node guid", node.GUID)
-    let incomingEdge = new edge(incomingGUID, node.GUID, logic)
-    // console.log("incomingEdge", incomingEdge)
-    // try to record globally
-    edge.insertToGlobal(incomingEdge);
-    //  record locally
-    this.edges.push(incomingEdge);
-    // if the node is conditional
+  walk(node, logic) {
+    // console.log("node guid", node.parent)
+    // ignore incoming path if there is only one parent pointer and it is circular
+    if (node === node.parent[0]) {
+      // console.log("caught")
+    } else { // Else create edge
+      // console.log(node.GUID);
+      // console.log(node.parent);
+      let incomingEdge = new edge(node.parent.GUID, node.GUID, logic)
+      // console.log("incomingEdge", incomingEdge)
+      // try to record globally
+      edge.insertToGlobal(incomingEdge);
+      //  record locally
+      this.edges.push(incomingEdge);
+    }
+    // Turn into switch case statement
     if (node.type === "Conditional") {
       // set falseChild pointer to a successor
-      node.falseChild = findSuccessor(node);
+      node.falseChild = findLateralSuccessor(node);
       // if the conditional has children
       if (node.body.length !== 0) {
         // set trueChild pointer of node to first child
@@ -293,12 +300,17 @@ class builder {
     } else if (node.type === "ReturnStatement") {
       // if the node is terminal
       node.trueChild = null;
+      // The array of edges collected by the builder are pushed into a master list that collects all possible paths.
       builder.traveledPaths.push(this.edges);
       return;
+    } else if (node.type === "Program") {
+      node.trueChild = node.body[0];
+    } else if (node.type === "Function") {
+      node.trueChild = node.body[0];
     } else {
       // console.log("here");
       //for all other cases look for a successor
-      node.trueChild = findSuccessor(node);
+      node.trueChild = findLateralSuccessor(node);
     }
     // clone the builder BEFORE the recursive call to copy the INTERIM state
     // TODO What if I simply stored a copy of the path and then reassigned it back to the
@@ -306,12 +318,12 @@ class builder {
     let clone = new builder(this)
     // follow trueChild is set go on
     if (node.trueChild) {
-      this.walk(node.trueChild, node.GUID, true);
+      this.walk(node.trueChild, true);
     }
     // If falsechild is set create a clone to follow falseChild
     if (node.falseChild) {
       //console.log(this);
-      clone.walk(node.falseChild, node.GUID, false);
+      clone.walk(node.falseChild, false);
     }
     // console.log("yerel edge", this.edges);
   }
@@ -319,7 +331,7 @@ class builder {
 // When a builder reaches a RETURN statement, it dumps its internal buffer here
 builder.traveledPaths = [];
 
-exports.findSuccessor = findSuccessor;
+exports.findSuccessor = findLateralSuccessor;
 exports.builder = builder;
 exports.edge = edge;
 exports.testCoverageComparison = testCoverageComparison;
