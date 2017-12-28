@@ -18,7 +18,7 @@ function code(a, b, c) {
 
 var testCases = [{
     a: 1,
-    b: 1,
+    b: 2,
     c: 1
 }]
 
@@ -35,7 +35,7 @@ var tester = new testCodeCoverage.testCoverageComparison(code, testCases);
 
 // BLACK BOX TESTS
 
-if (tester.statementCoverage() !== 0.8888888888888888) {
+if (tester.statementCoverage() !== 1) {
     throw new Error("Statement coverage is wrong: " + tester.statementCoverage());
 }
 if (testCodeCoverage.builder.parsedPaths.length !== 6) {
@@ -49,7 +49,7 @@ if (testCodeCoverage.edge.globalEdges.length !== 11) {
     throw new Error("Number of all edges is wrong: " + testCodeCoverage.edge.globalEdges.length);
 }
 // 3->4 True is missing
-if (tester.branchCoverage.length !== 7) {
+if (tester.branchCoverage.length !== 8) {
     throw new Error("Number of covered edges is wrong: " + tester.branchCoverage.length);
 }
 
