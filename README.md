@@ -28,24 +28,24 @@ console.log(tester.statementCoverage());
 
 ## Limitations
 
-Currently only supports if blocks and logical operators.
+Currently only supports if blocks (no else blocks), logical operators and assigment operators.
+
+Creating local scope variables by copying initial values is allowed. Such that "holder = a;" will cause a holder variable to be internally created.
 
 ## TODO
 
-Still WIP
-
 ### Analysis targets
 
-- Assignment operator
 - Else blocks
 - Increment operator
 - While blocks
+- Declaration keyword (var, let, const) support
+- Algebraic operations (+ - * /) support
 
 ### Algorithms
 
-- Test runner should use the shadow tree pointers.
 - Parser should be divided into smaller objects to allow finer grained output.
 
 ### Testing
 
-- Needs testing
+- Testing can be made more robust.

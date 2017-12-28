@@ -1,5 +1,4 @@
 var js2flowchart = require("js2flowchart");
-var fs = require("fs");
 
 class testCoverageComparison {
   constructor(code, testCases) {
@@ -11,7 +10,6 @@ class testCoverageComparison {
     this.tree = js2flowchart.convertCodeToFlowTree(code);
     // Generate a reference SVG from the parsed tree
     this.svg = js2flowchart.convertFlowTreeToSvg(this.tree);
-    fs.writeFileSync("test.svg", this.svg);
     // Walker uses this value to assign GUIDs to nodes
     this.GUID = 0;
     // This is used to keep track of the nodes visited by tester.
@@ -26,8 +24,8 @@ class testCoverageComparison {
     this.walker(this.tree);
     // Set a new set of pointers between nodes and plot the paths between
     // All possible paths are stored in edge.globalEdges
-    new builder().walk(this.tree.body[0].body[0], this.tree.body[0].GUID, true);
-    // Declare it beforehand
+    new builder().walk(this.tree, true);
+    // Forward declaration
     this.currentTestCase = {};
     // iterate through test cases
     for (let i in testCases) {
@@ -38,7 +36,7 @@ class testCoverageComparison {
       this.tester(this.tree, null);
       // store the individual path taken by this test
       this.threadPaths.push(this.tempPath);
-      console.log(">----<")
+      // console.log(">----<")
     }
   }
 
@@ -53,58 +51,55 @@ class testCoverageComparison {
     }
     if (node.body && node.body !== []) {
       for (let index in node.body) {
-        this.walker(node.body[index], index);
+        this.walker(node.body[index]);
       }
     }
   }
 
-  tester(node, childnumber) {
-    // When a node is not visited its value in array will be undefined.
+  tester(node) {
+    // When a node is not visited its value in array will stay undefined. We later count these for code covarage.
     this.visitedNodesGUID[node.GUID] = true;
-    // making first selected child modify the parent if statement lets us centralise the functionality.
-    if (!node.parent.selected) {
-      node.parent["selected"] = childnumber;
-    }
-    // logic here could be changed to accomodate t/f pathing of decisions
+
+    // TODO clean up code duplication
     switch (node.type) {
       case "Conditional":
-        if (this.executor(node.name)) {
-          for (let index in node.body) {
-            if (node.body[index].key === "consequent") {
-              this.addEdgeTotempPath(new edge(node.GUID, node.body[index].GUID, true));
-              this.addEdgeTobranchCoverage(new edge(node.GUID, node.body[index].GUID, true));
-              this.tester(node.body[index], index);
-            }
+        {
+          // Determine the outcome of the control flow
+          let logic = this.executor(node.name)
+          // If condition evaluates to true, follow true child pointer, else false child
+          let child;
+          if (logic) {
+            child = node.trueChild;
+          } else {
+            child = node.falseChild;
           }
+          //console.log(node);
+          this.addEdgeTotempPath(new edge(node.GUID, child.GUID, logic));
+          this.addEdgeTobranchCoverage(new edge(node.GUID, child.GUID, logic));
+          this.tester(child);
+          break;
         }
-        /*else {
-               for (index in node.body) {
-                 if (node.body[index].key === "alternate") {
-                   tester(node.body[index], index);
-                 }
-               }
-             }*/
-        break;
-        /*
-          case "Loop":
-              while (eval(node.name)) {
-                  for (index in node.body) {
-                      walker(node.body[index]);
-                  }
-              }
-              break;
-              */
       case "UpdateExpression":
       case "AssignmentExpression":
-        this.executor(node.name);
+        {
+          // TODO expand this
+          this.executor(node.name);
+          let child = node.trueChild;
+          this.addEdgeTotempPath(new edge(node.GUID, child.GUID, true));
+          this.addEdgeTobranchCoverage(new edge(node.GUID, child.GUID, true));
+          this.tester(child);
+          break;
+        }
+      case "ReturnStatement":
         break;
       default:
-        if (node.body && node.body !== []) {
-          for (let index in node.body) {
-            this.addEdgeTotempPath(new edge(node.GUID, node.body[index].GUID));
-            this.addEdgeTobranchCoverage(new edge(node.GUID, node.body[index].GUID, true));
-            this.tester(node.body[index], index);
-          }
+        {
+          // Default behavior is following the true child.
+          let child = node.trueChild;
+          this.addEdgeTotempPath(new edge(node.GUID, child.GUID, true));
+          this.addEdgeTobranchCoverage(new edge(node.GUID, child.GUID, true));
+          this.tester(child);
+          break;
         }
     }
     return;
@@ -112,7 +107,6 @@ class testCoverageComparison {
 
   // takes strings in form of (a > b) and evaluates them
   executor(operation) {
-    console.log(operation);
     // remove parens if found
     if (operation.charAt(0) === "(") {
       operation = operation.slice(1, -1);
@@ -137,8 +131,6 @@ class testCoverageComparison {
         return this.currentTestCase[lhs] !== this.currentTestCase[rhs];
       case "==":
         return this.currentTestCase[lhs] == this.currentTestCase[rhs];
-      case "!=":
-        return this.currentTestCase[lhs] != this.currentTestCase[rhs];
       case "=":
         return this.currentTestCase[lhs] = this.currentTestCase[rhs];
     }
@@ -181,8 +173,8 @@ class testCoverageComparison {
 
 }
 
-// This function expects input code to be terminated with a RETURN statement. Otherwise it may cause a call stack violation.
-function findSuccessor(node) {
+// This function expects input code to be terminated with a RETURN statement. Otherwise it may cause a infinite recursive callback and a call stack violation.
+function findLateralSuccessor(node) {
   // look for sibling
   let index = node.parent.body.indexOf(node);
   // if item is in array (actually redundant) and is not the last item(a next sibling exists), return next sibling.
@@ -190,7 +182,7 @@ function findSuccessor(node) {
     return node.parent.body[index + 1];
   }
   // if there is no sibling recursively call for parent to find an uncle
-  return findSuccessor(node.parent)
+  return findLateralSuccessor(node.parent)
 }
 
 // used to encapsulate the connection between node pairs.
@@ -272,18 +264,20 @@ class builder {
     }
   }
   // process nodes one by one
-  walk(node, incomingGUID, logic) {
-    //console.log("node guid", node.GUID)
-    let incomingEdge = new edge(incomingGUID, node.GUID, logic)
-    // console.log("incomingEdge", incomingEdge)
-    // try to record globally
-    edge.insertToGlobal(incomingEdge);
-    //  record locally
-    this.edges.push(incomingEdge);
-    // if the node is conditional
+  walk(node, logicParentID, logic) {
+    // ignore incoming path if node is root
+    if (node.type !== "Program") {
+      let incomingEdge = new edge(logicParentID, node.GUID, logic)
+      // record globally
+      edge.insertToGlobal(incomingEdge);
+      // record locally
+      this.edges.push(incomingEdge);
+    }
+
+    // Turn into switch case statement
     if (node.type === "Conditional") {
-      // set falseChild pointer to a successor
-      node.falseChild = findSuccessor(node);
+      // set falseChild pointer to the lateral successor by default
+      node.falseChild = findLateralSuccessor(node);
       // if the conditional has children
       if (node.body.length !== 0) {
         // set trueChild pointer of node to first child
@@ -295,12 +289,17 @@ class builder {
     } else if (node.type === "ReturnStatement") {
       // if the node is terminal
       node.trueChild = null;
-      builder.traveledPaths.push(this.edges);
+      // The array of edges collected by the builder are pushed into a master list that collects all possible paths.
+      builder.parsedPaths.push(this.edges);
       return;
+    } else if (node.type === "Program") {
+      node.trueChild = node.body[0];
+    } else if (node.type === "Function") {
+      node.trueChild = node.body[0];
     } else {
       // console.log("here");
       //for all other cases look for a successor
-      node.trueChild = findSuccessor(node);
+      node.trueChild = findLateralSuccessor(node);
     }
     // clone the builder BEFORE the recursive call to copy the INTERIM state
     // TODO What if I simply stored a copy of the path and then reassigned it back to the
@@ -319,12 +318,9 @@ class builder {
   }
 }
 // When a builder reaches a RETURN statement, it dumps its internal buffer here
-builder.traveledPaths = [];
+builder.parsedPaths = [];
 
-
-
-
-exports.findSuccessor = findSuccessor;
+exports.findSuccessor = findLateralSuccessor;
 exports.builder = builder;
 exports.edge = edge;
 exports.testCoverageComparison = testCoverageComparison;
