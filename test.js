@@ -3,6 +3,9 @@ var testCodeCoverage = require("./index.js");
 // don't change the test data without modifying the blackbox test results
 var code = `
 function code(a, b, c) {
+    holder = a;
+    a=b;
+    b=holder;
     if(b<a){
         if(c<b){
         }
@@ -32,7 +35,7 @@ var tester = new testCodeCoverage.testCoverageComparison(code, testCases);
 
 // BLACK BOX TESTS
 
-if (tester.statementCoverage() !== 0.8333333333333334) {
+if (tester.statementCoverage() !== 0.8888888888888888) {
     throw new Error("Statement coverage is wrong: " + tester.statementCoverage());
 }
 if (testCodeCoverage.builder.parsedPaths.length !== 6) {
@@ -42,11 +45,11 @@ if (testCodeCoverage.builder.parsedPaths.length !== 6) {
 if (tester.threadPaths.length !== 1) {
     throw new Error("Number of tested paths is wrong: " + tester.threadPaths.length);
 }
-if (testCodeCoverage.edge.globalEdges.length !== 8) {
+if (testCodeCoverage.edge.globalEdges.length !== 11) {
     throw new Error("Number of all edges is wrong: " + testCodeCoverage.edge.globalEdges.length);
 }
 // 3->4 True is missing
-if (tester.branchCoverage.length !== 4) {
+if (tester.branchCoverage.length !== 7) {
     throw new Error("Number of covered edges is wrong: " + tester.branchCoverage.length);
 }
 

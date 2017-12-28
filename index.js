@@ -60,7 +60,7 @@ class testCoverageComparison {
     // When a node is not visited its value in array will stay undefined. We later count these for code covarage.
     this.visitedNodesGUID[node.GUID] = true;
 
-    // TODO cleaned up code duplication
+    // TODO clean up code duplication
     switch (node.type) {
       case "Conditional":
         {
@@ -84,6 +84,10 @@ class testCoverageComparison {
         {
           // TODO expand this
           this.executor(node.name);
+          let child = node.trueChild;
+          this.addEdgeTotempPath(new edge(node.GUID, child.GUID, true));
+          this.addEdgeTobranchCoverage(new edge(node.GUID, child.GUID, true));
+          this.tester(child);
           break;
         }
       case "ReturnStatement":
@@ -127,8 +131,6 @@ class testCoverageComparison {
         return this.currentTestCase[lhs] !== this.currentTestCase[rhs];
       case "==":
         return this.currentTestCase[lhs] == this.currentTestCase[rhs];
-      case "!=":
-        return this.currentTestCase[lhs] != this.currentTestCase[rhs];
       case "=":
         return this.currentTestCase[lhs] = this.currentTestCase[rhs];
     }
