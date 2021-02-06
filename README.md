@@ -34,6 +34,8 @@ Creating local scope variables by copying initial values is allowed. Such that "
 
 ## TODO
 
+It never occured to me but this is exactly the sort of thing that Bret Victor is good at: http://worrydream.com/LearnableProgramming/
+
 ### Analysis targets
 
 - Else blocks
